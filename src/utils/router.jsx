@@ -5,6 +5,8 @@ import Home from "../components/Home";
 import Login from "../components/Login";
 import Register from "../components/Register";
 import ErrorPage from "../components/ErrorPage";
+import PrivateRoute from "../components/PrivateRoute";
+
 
 
 
@@ -18,7 +20,7 @@ const router = createBrowserRouter([
         children: [
             {
                 path: "/",
-                element: <Home></Home>,
+                element: <PrivateRoute><Home></Home></PrivateRoute>,
                 
             },
            {

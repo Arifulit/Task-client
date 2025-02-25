@@ -1,16 +1,16 @@
 
 // Home.js
-import { useState, useEffect } from 'react';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import Swal from 'sweetalert2';
+import { useState, useEffect } from "react";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import Swal from "sweetalert2";
 
 const Home = () => {
   const [tasks, setTasks] = useState([]);
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    timestamp: '',
-    category: 'To-Do',
+    title: "",
+    description: "",
+    timestamp: "",
+    category: "To-Do",
   });
   const [editTask, setEditTask] = useState(null);
 
@@ -21,56 +21,64 @@ const Home = () => {
 
   const fetchTasks = async () => {
     try {
-      const res = await fetch('https://task-manager-server-eight-ashy.vercel.app/tasks');
+      const res = await fetch(
+        "https://task-manager-server-eight-ashy.vercel.app/tasks"
+      );
       if (res.ok) {
         const data = await res.json();
         setTasks(data);
       } else {
-        console.error('Error fetching tasks:', res.statusText);
+        console.error("Error fetching tasks:", res.statusText);
       }
     } catch (error) {
-      console.error('Error fetching tasks:', error);
+      console.error("Error fetching tasks:", error);
     }
   };
 
   const addTask = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('https://task-manager-server-eight-ashy.vercel.app/tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
+      const res = await fetch(
+        "https://task-manager-server-eight-ashy.vercel.app/tasks",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        }
+      );
       if (res.ok) {
         setFormData({
-          title: '',
-          description: '',
-          timestamp: '',
-          category: 'To-Do',
+          title: "",
+          description: "",
+          timestamp: "",
+          category: "To-Do",
         });
         fetchTasks();
       } else {
-        console.error('Error adding task:', res.statusText);
+        console.error("Error adding task:", res.statusText);
       }
     } catch (error) {
-      console.error('Error adding task:', error);
+      console.error("Error adding task:", error);
     }
   };
 
   const updateTask = async (updatedTask) => {
     try {
-      const res = await fetch(`https://task-manager-server-eight-ashy.vercel.app/tasks/${updatedTask._id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedTask),
-      });
+      const res = await fetch(
+        `https://task-manager-server-eight-ashy.vercel.app/tasks/${updatedTask._id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updatedTask),
+        }
+      );
       if (res.ok) {
         fetchTasks();
       } else {
-        console.error('Error updating task:', res.statusText);
+        console.error("Error updating task:", res.statusText);
       }
     } catch (error) {
-      console.error('Error updating task:', error);
+      console.error("Error updating task:", error);
     }
   };
 
@@ -87,9 +95,12 @@ const Home = () => {
       });
 
       if (result.isConfirmed) {
-        const res = await fetch(`https://task-manager-server-eight-ashy.vercel.app/tasks/${id}`, {
-          method: 'DELETE',
-        });
+        const res = await fetch(
+          `https://task-manager-server-eight-ashy.vercel.app/tasks/${id}`,
+          {
+            method: "DELETE",
+          }
+        );
 
         if (res.ok) {
           Swal.fire({
@@ -97,7 +108,7 @@ const Home = () => {
             text: "The task has been deleted.",
             icon: "success",
           });
-          fetchTasks(); 
+          fetchTasks();
         } else {
           Swal.fire({
             title: "Error!",
@@ -107,7 +118,7 @@ const Home = () => {
         }
       }
     } catch (error) {
-      console.error('Error deleting task:', error);
+      console.error("Error deleting task:", error);
       Swal.fire({
         title: "Error!",
         text: "An unexpected error occurred.",
@@ -117,55 +128,35 @@ const Home = () => {
   };
 
   const handleDragEnd = async (result) => {
+    // eslint-disable-next-line no-unused-vars
     const { source, destination } = result;
     if (!destination) return;
-    if (
-      source.droppableId === destination.droppableId &&
-      source.index === destination.index
-    )
-      return;
 
-    const boardCategories = ['To-Do', 'In Progress', 'Done'];
-    const tasksByCategory = {};
-    boardCategories.forEach((category) => {
-      tasksByCategory[category] = tasks
-        .filter((task) => task.category === category)
-        .sort((a, b) => (a.order || 0) - (b.order || 0));
-    });
+    const updatedTasks = [...tasks];
+    const movedTask = updatedTasks.find(
+      (task) => task._id === result.draggableId
+    );
+    if (!movedTask) return;
 
-    const sourceList = Array.from(tasksByCategory[source.droppableId]);
-    const [movedTask] = sourceList.splice(source.index, 1);
     movedTask.category = destination.droppableId;
 
-    const destinationList = Array.from(tasksByCategory[destination.droppableId]);
-    destinationList.splice(destination.index, 0, movedTask);
-
-    const recalcOrders = (list) =>
-      list.map((task, index) => ({ ...task, order: index }));
-    const updatedSourceList = recalcOrders(sourceList);
-    const updatedDestinationList = recalcOrders(destinationList);
-
-    const updatedTasks = tasks.map((task) => {
-      if (task._id === movedTask._id) return movedTask;
-      if (task.category === source.droppableId) {
-        const found = updatedSourceList.find((t) => t._id === task._id);
-        return found || task;
-      }
-      if (task.category === destination.droppableId) {
-        const found = updatedDestinationList.find((t) => t._id === task._id);
-        return found || task;
-      }
-      return task;
-    });
     setTasks(updatedTasks);
 
-    const tasksToUpdate = [...updatedSourceList, ...updatedDestinationList];
-    for (const t of tasksToUpdate) {
-      await updateTask(t);
+    try {
+      await fetch(
+        `https://task-manager-server-eight-ashy.vercel.app/tasks/${movedTask._id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(movedTask),
+        }
+      );
+    } catch (error) {
+      console.error("Error updating task category:", error);
     }
   };
 
-  const boardCategories = ['To-Do', 'In Progress', 'Done'];
+  const boardCategories = ["To-Do", "In Progress", "Done"];
   const tasksByCategoryForRender = {};
   boardCategories.forEach((category) => {
     tasksByCategoryForRender[category] = tasks
@@ -177,7 +168,10 @@ const Home = () => {
     <div className="max-w-full px-4 py-8 md:max-w-6xl md:mx-auto mt-16">
       <h1 className="text-3xl font-bold mb-4 text-center">Task Board</h1>
 
-      <form onSubmit={addTask} className="mb-8 grid gap-4 md:grid-cols-4">
+      <form
+        onSubmit={addTask}
+        className="mb-8 grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4"
+      >
         <input
           type="text"
           name="title"
@@ -223,7 +217,7 @@ const Home = () => {
         </select>
         <button
           type="submit"
-          className="col-span-4 mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          className="col-span-1 sm:col-span-2 md:col-span-4 mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
         >
           Add Task
         </button>
@@ -304,42 +298,54 @@ const Home = () => {
       )}
 
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex overflow-x-auto space-x-4">
+        <div className="flex overflow-x-auto space-x-4 flex-wrap sm:flex-nowrap">
           {boardCategories.map((category) => (
             <Droppable key={category} droppableId={category}>
               {(provided) => (
                 <div
                   ref={provided.innerRef}
                   {...provided.droppableProps}
-                  className="bg-gray-100 p-4 rounded flex-1 min-w-[300px]"
+                  className="bg-white shadow-lg p-6 rounded-lg flex-1 w-full sm:w-[350px] transition-all mb-4"
                 >
-                  <h2 className="text-xl font-semibold mb-4">{category}</h2>
+                  <h2 className="text-xl font-semibold mb-4 text-gray-800">
+                    {category}
+                  </h2>
                   {tasksByCategoryForRender[category].map((task, index) => (
-                    <Draggable key={task._id} draggableId={`${task._id}`} index={index}>
-                      {(provided) => (
+                    <Draggable
+                      key={task._id}
+                      draggableId={`${task._id}`}
+                      index={index}
+                    >
+                      {(provided, snapshot) => (
                         <div
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                           {...provided.dragHandleProps}
-                          className="p-4 rounded bg-blue-400 shadow mb-2 flex justify-between items-center"
+                          className={`p-4 rounded-lg bg-slate-600 shadow-md border border-blue-300 mb-2 flex justify-between items-center transition-transform duration-200 ease-in-out transform ${
+                            snapshot.isDragging ? "opacity-50" : ""
+                          }`}
                         >
                           <div>
-                            <h3 className="font-bold">{task.title}</h3>
-                            <p className="text-sm">{task.description}</p>
-                            <p className="text-xs text-gray-500">
+                            <h3 className="font-bold text-white">
+                              {task.title}
+                            </h3>
+                            <p className="text-sm text-white">
+                              {task.description}
+                            </p>
+                            <p className="text-xs text-white">
                               {new Date(task.timestamp).toLocaleString()}
                             </p>
                           </div>
                           <div className="flex space-x-2">
                             <button
                               onClick={() => setEditTask(task)}
-                              className="px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                              className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition"
                             >
                               Edit
                             </button>
                             <button
                               onClick={() => deleteTask(task._id)}
-                              className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                              className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
                             >
                               Delete
                             </button>
